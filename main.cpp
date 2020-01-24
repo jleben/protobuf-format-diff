@@ -163,19 +163,27 @@ void compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
 
 void compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
 {
+#if 0
     print_field(field1);
     cout << " -> ";
     print_field(field2);
     cout << endl;
+#endif
+    string what = field1->full_name() + " -> " + field2->full_name();
 
     if (field1->number() != field2->number())
     {
-        cout << "Changed ID." << endl;
+        cout << "Changed ID: " << what << endl;
+    }
+
+    if (field1->label() != field2->label())
+    {
+        cout << "Changed label: " << what << endl;
     }
 
     if (field1->type() != field2->type())
     {
-        cout << "Changed type." << endl;
+        cout << "Changed type: " << what << endl;
     }
 
     if (field1->type() == FieldDescriptor::TYPE_ENUM)
@@ -184,7 +192,7 @@ void compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
         auto * enum2 = field2->enum_type();
         if (enum1->full_name() != enum2->full_name())
         {
-            cout << "Changed type name." << endl;
+            cout << "Changed type name: " << what << endl;
         }
 
         //if (!state.done_comparisons.count({ enum1->full_name(), enum2->full_name() }))
@@ -200,7 +208,7 @@ void compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
 
         if (msg1->full_name() != msg2->full_name())
         {
-            cout << "Changed type name." << endl;
+            cout << "Changed type name: " << what << endl;
         }
 
         //if (!state.done_comparisons.count({ enum1->full_name(), enum2->full_name() }))
@@ -209,14 +217,12 @@ void compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
         }
     }
 
-    if (field1->label() != field2->label())
+    if (field1->cpp_type() == field2->cpp_type())
     {
-        cout << "Changed label." << endl;
-    }
-
-    if (!compare_default_value(field1, field2))
-    {
-        cout << "Changed default value." << endl;
+        if (!compare_default_value(field1, field2))
+        {
+            cout << "Changed default value: " << what << endl;
+        }
     }
 }
 
@@ -233,7 +239,7 @@ void compare(const Descriptor * desc1, const Descriptor * desc2)
         }
         else
         {
-            cout << "Field removed: " << field1->full_name() << endl;
+            cout << "Field removed: " << field1->number() << " = " << field1->full_name() << endl;
         }
     }
 
@@ -243,7 +249,7 @@ void compare(const Descriptor * desc1, const Descriptor * desc2)
         auto * field1 = desc1->FindFieldByName(field2->name());
         if (!field1)
         {
-            cout << "Field added: " << field2->full_name() << endl;
+            cout << "Field added: " << field2->number() << " = " << field2->full_name() << endl;
         }
     }
 
@@ -301,8 +307,6 @@ void compare(Source & source1, Source & source2, const string & message_name)
         return;
 
     compare(desc1, desc2);
-
-    cout << "OK." << endl;
 }
 
 int main(int argc, char * argv[])
