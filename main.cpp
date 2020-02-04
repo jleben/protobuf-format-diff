@@ -60,7 +60,16 @@ private:
     const FileDescriptor * d_file_descriptor = nullptr;
 };
 
-void compare(const Descriptor * desc1, const Descriptor * desc2);
+class Comparison
+{
+public:
+    void compare(Source & source1, Source & source2);
+    void compare(Source & source1, Source & source2, const string & message_name);
+    void compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2);
+    void compare(const Descriptor * desc1, const Descriptor * desc2);
+    void compare(const FieldDescriptor * field1, const FieldDescriptor * field2);
+    bool compare_default_value(const FieldDescriptor * field1, const FieldDescriptor * field2);
+};
 
 void print_field(const FieldDescriptor * field)
 {
@@ -96,7 +105,7 @@ void print_field(const FieldDescriptor * field)
     }
 }
 
-bool compare_default_value(const FieldDescriptor * field1, const FieldDescriptor * field2)
+bool Comparison::compare_default_value(const FieldDescriptor * field1, const FieldDescriptor * field2)
 {
     if (field1->has_default_value() != field2->has_default_value())
         return false;
@@ -132,7 +141,7 @@ bool compare_default_value(const FieldDescriptor * field1, const FieldDescriptor
     }
 }
 
-void compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
+void Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
 {
     for (int i = 0; i < enum1->value_count(); ++i)
     {
@@ -164,7 +173,7 @@ void compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
     }
 }
 
-void compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
+void Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
 {
 #if 0
     print_field(field1);
@@ -229,7 +238,7 @@ void compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
     }
 }
 
-void compare(const Descriptor * desc1, const Descriptor * desc2)
+void Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
 {
     for (int i = 0; i < desc1->field_count(); ++i)
     {
@@ -289,7 +298,7 @@ void compare(const Descriptor * desc1, const Descriptor * desc2)
 #endif
 }
 
-void compare(Source & source1, Source & source2)
+void Comparison::compare(Source & source1, Source & source2)
 {
     auto * file1 = source1.file_descriptor();
     auto * file2 = source2.file_descriptor();
@@ -320,7 +329,7 @@ void compare(Source & source1, Source & source2)
     }
 }
 
-void compare(Source & source1, Source & source2, const string & message_name)
+void Comparison::compare(Source & source1, Source & source2, const string & message_name)
 {
     auto desc1 = source1.pool()->FindMessageTypeByName(message_name);
     auto desc2 = source2.pool()->FindMessageTypeByName(message_name);
@@ -351,8 +360,7 @@ int main(int argc, char * argv[])
         return 1;
     }
 
-    Source source1;
-    Source source2;
+    Comparison comparison;
 
     try
     {
@@ -360,9 +368,9 @@ int main(int argc, char * argv[])
         Source source2(argv[3], argv[4]);
         string message_name = argv[5];
         if (message_name == ".")
-            compare(source1, source2);
+            comparison.compare(source1, source2);
         else
-            compare(source1, source2, message_name);
+            comparison.compare(source1, source2, message_name);
     }
     catch(std::exception & e)
     {
