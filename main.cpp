@@ -31,6 +31,7 @@ class Source
     using DiskSourceTree = google::protobuf::compiler::DiskSourceTree;
     using Importer = google::protobuf::compiler::Importer;
     using DescriptorPool = google::protobuf::DescriptorPool;
+    using FileDescriptor = google::protobuf::FileDescriptor;
 
 public:
     Source() {}
@@ -42,19 +43,21 @@ public:
 
         importer = make_shared<Importer>(&source_tree, &error_collector);
 
-        auto * file_descriptor = importer->Import(file_path);
-        if (!file_descriptor)
+        d_file_descriptor = importer->Import(file_path);
+        if (!d_file_descriptor)
         {
             throw std::runtime_error("Failed to load source.");
         }
     }
 
+    const FileDescriptor * file_descriptor() const { return d_file_descriptor; }
     const DescriptorPool * pool() const { return importer->pool(); }
 
 private:
     DiskSourceTree source_tree;
     ErrorCollector error_collector;
     shared_ptr<Importer> importer;
+    const FileDescriptor * d_file_descriptor = nullptr;
 };
 
 void compare(const Descriptor * desc1, const Descriptor * desc2);
@@ -286,6 +289,37 @@ void compare(const Descriptor * desc1, const Descriptor * desc2)
 #endif
 }
 
+void compare(Source & source1, Source & source2)
+{
+    auto * file1 = source1.file_descriptor();
+    auto * file2 = source2.file_descriptor();
+
+    for (int i = 0; i < file1->message_type_count(); ++i)
+    {
+        auto * msg1 = file1->message_type(i);
+        auto * msg2 = file2->FindMessageTypeByName(msg1->name());
+        if (msg2)
+        {
+            compare(msg1, msg2);
+        }
+        else
+        {
+            cout << "Message removed: " << msg1->full_name() << endl;
+        }
+    }
+
+
+    for (int i = 0; i < file2->message_type_count(); ++i)
+    {
+        auto * msg2 = file2->message_type(i);
+        auto * msg1 = file1->FindMessageTypeByName(msg2->name());
+        if (!msg1)
+        {
+            cout << "Message added: " << msg2->full_name() << endl;
+        }
+    }
+}
+
 void compare(Source & source1, Source & source2, const string & message_name)
 {
     auto desc1 = source1.pool()->FindMessageTypeByName(message_name);
@@ -325,7 +359,10 @@ int main(int argc, char * argv[])
         Source source1(argv[1], argv[2]);
         Source source2(argv[3], argv[4]);
         string message_name = argv[5];
-        compare(source1, source2, message_name);
+        if (message_name == ".")
+            compare(source1, source2);
+        else
+            compare(source1, source2, message_name);
     }
     catch(std::exception & e)
     {
