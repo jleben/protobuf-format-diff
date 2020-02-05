@@ -225,7 +225,7 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
         }
         else
         {
-            section.add_item("Removed enum value: " + value1->name());
+            section.add_item("Removed value: " + value1->name());
         }
     }
 
@@ -235,7 +235,7 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
         auto * value1 = enum1->FindValueByName(value2->name());
         if (!value1)
         {
-            section.add_item("Added enum value: " + value2->name());
+            section.add_item("Added value: " + value2->name());
         }
     }
 
@@ -388,7 +388,7 @@ void Comparison::compare(Source & source1, Source & source2)
     auto * file1 = source1.file_descriptor();
     auto * file2 = source2.file_descriptor();
 
-    Section & section = root.add_subsection("Comparing files: "
+    Section & section = root.add_subsection("Comparing all enums and messages in files: "
                                             + file1->name() + " -> " + file2->name());
 
     for (int i = 0; i < file1->message_type_count(); ++i)
@@ -414,34 +414,57 @@ void Comparison::compare(Source & source1, Source & source2)
             section.add_item("Added message: " + msg2->full_name());
         }
     }
+
+    for (int i = 0; i < file1->enum_type_count(); ++i)
+    {
+        auto * enum1 = file1->enum_type(i);
+        auto * enum2 = file2->FindEnumTypeByName(enum1->name());
+        if (enum2)
+        {
+            section.subsections.push_back(compare(enum1, enum2));
+        }
+        else
+        {
+            section.add_item("Removed enum: " + enum1->full_name());
+        }
+    }
+
+    for (int i = 0; i < file2->enum_type_count(); ++i)
+    {
+        auto * enum2 = file2->enum_type(i);
+        auto * enum1 = file1->FindEnumTypeByName(enum2->name());
+        if (!enum1)
+        {
+            section.add_item("Added enum: " + enum2->full_name());
+        }
+    }
 }
 
-void Comparison::compare(Source & source1, Source & source2, const string & message_name)
+void Comparison::compare(Source & source1, Source & source2, const string & message_or_enum_name)
 {
-    auto desc1 = source1.pool()->FindMessageTypeByName(message_name);
-    auto desc2 = source2.pool()->FindMessageTypeByName(message_name);
+    auto desc1 = source1.pool()->FindMessageTypeByName(message_or_enum_name);
+    auto desc2 = source2.pool()->FindMessageTypeByName(message_or_enum_name);
 
-    bool ok = desc1 != nullptr and desc2 != nullptr;
+    auto enum1 = source1.pool()->FindEnumTypeByName(message_or_enum_name);
+    auto enum2 = source2.pool()->FindEnumTypeByName(message_or_enum_name);
 
     Section & section =
-            root.add_subsection("Comparing message " + message_name + " in files: "
+            root.add_subsection("Comparing type " + message_or_enum_name + " in files: "
                                 + source1.file_descriptor()->name() + " -> "
                                 + source2.file_descriptor()->name());
 
-    if (!desc1)
+    if (desc1 and desc2)
     {
-        section.add_item("Message '" + message_name + "' does not appear in source 1.");
+        section.subsections.push_back(compare(desc1, desc2));
     }
-
-    if (!desc2)
+    else if (enum1 and enum2)
     {
-        section.add_item("Message '" + message_name + "' does not appear in source 2.");
+        section.subsections.push_back(compare(enum1, enum2));
     }
-
-    if (!ok)
-        return;
-
-    section.subsections.push_back(compare(desc1, desc2));
+    else
+    {
+        section.add_item("Could not find message or enum named '" + message_or_enum_name + "' in both sources.");
+    }
 }
 
 int main(int argc, char * argv[])
