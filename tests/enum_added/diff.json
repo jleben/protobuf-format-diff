@@ -2,9 +2,9 @@
   "type": "/",
   "items": [
     {
-      "type": "file_message_added",
+      "type": "file_enum_added",
       "a": "",
-      "b": "Test.M"
+      "b": "Test.E"
     }
   ]
 }

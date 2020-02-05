@@ -1,0 +1,10 @@
+{
+  "type": "/",
+  "items": [
+    {
+      "type": "file_message_removed",
+      "a": "Test.M",
+      "b": ""
+    }
+  ]
+}

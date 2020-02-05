@@ -1,0 +1,10 @@
+{
+  "type": "/",
+  "items": [
+    {
+      "type": "file_enum_removed",
+      "a": "Test.E",
+      "b": ""
+    }
+  ]
+}
