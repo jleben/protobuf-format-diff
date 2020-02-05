@@ -2,6 +2,7 @@
 #include <google/protobuf/descriptor.h>
 
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <list>
 
@@ -64,25 +65,65 @@ private:
 class Comparison
 {
 public:
+    enum ItemType
+    {
+        Enum_Value_Id_Changed,
+        Enum_Value_Added,
+        Enum_Value_Removed,
+        Message_Field_Name_Changed,
+        Message_Field_Id_Changed,
+        Message_Field_Label_Changed,
+        Message_Field_Type_Changed,
+        Message_Field_Default_Value_Changed,
+        Message_Field_Added,
+        Message_Field_Removed,
+        File_Message_Added,
+        File_Message_Removed,
+        File_Enum_Added,
+        File_Enum_Removed,
+        Name_Missing
+    };
+
     struct Item
     {
-        Item(const string & what): what(what) {}
-        string what;
+        Item(ItemType t, const string & a, const string & b): type(t), a(a), b(b) {}
+        ItemType type;
+        string a;
+        string b;
+
+        string message() const;
+    };
+
+    enum SectionType
+    {
+        Root_Section,
+        Message_Comparison,
+        Message_Field_Comparison,
+        Enum_Comparison,
+        Enum_Value_Comparison
     };
 
     struct Section
     {
-        Section(const string & what) : what(what) {}
+        Section(SectionType t, const string & a, const string & b):
+            type(t), a(a), b(b) {}
 
-        Section & add_subsection(const string & what)
+        SectionType type;
+        string a;
+        string b;
+
+        list<Section> subsections;
+        list<Item> items;
+
+        Section & add_subsection(SectionType t, const string & a, const string & b)
         {
-            subsections.emplace_back(what);
+            subsections.emplace_back(t, a, b);
             return subsections.back();
         }
 
-        void add_item(const string & what)
+        void add_item(ItemType t, const string & a, const string & b)
         {
-            items.emplace_back(what);
+            items.emplace_back(t, a, b);
         }
 
         bool is_empty() const { return subsections.empty() and items.empty(); }
@@ -100,9 +141,11 @@ public:
             }
         }
 
+        string message() const;
+
         void print(int level = 0)
         {
-            cout << string(level*2, ' ') << what << endl;
+            cout << string(level*2, ' ') << message() << endl;
 
             ++level;
 
@@ -110,7 +153,7 @@ public:
 
             for (auto & item : items)
             {
-                cout << subprefix << "* " << item.what << endl;
+                cout << subprefix << "* " << item.message() << endl;
             }
 
             for (auto & subsection : subsections)
@@ -119,9 +162,6 @@ public:
             }
         }
 
-        string what;
-        list<Section> subsections;
-        list<Item> items;
     };
 
     void compare(Source & source1, Source & source2);
@@ -131,8 +171,97 @@ public:
     Section compare(const FieldDescriptor * field1, const FieldDescriptor * field2);
     bool compare_default_value(const FieldDescriptor * field1, const FieldDescriptor * field2);
 
-    Section root { "/" };
+    Section root { Root_Section, "", "" };
 };
+
+string Comparison::Item::message() const
+{
+    string msg;
+
+    switch (type)
+    {
+    case Enum_Value_Id_Changed:
+        msg = "Value ID changed";
+        break;
+    case Enum_Value_Added:
+        msg = "Value added";
+        break;
+    case Enum_Value_Removed:
+        msg = "Value removed";
+        break;
+    case Message_Field_Name_Changed:
+        msg = "Name changed";
+        break;
+    case Message_Field_Id_Changed:
+        msg = "ID changed";
+        break;
+    case Message_Field_Label_Changed:
+        msg = "Label changed";
+        break;
+    case Message_Field_Type_Changed:
+        msg = "Type changed";
+        break;
+    case Message_Field_Default_Value_Changed:
+        msg = "Default value changed";
+        break;
+    case Message_Field_Added:
+        msg = "Field added";
+        break;
+    case Message_Field_Removed:
+        msg = "Field removed";
+        break;
+    case File_Message_Added:
+        msg = "Message added";
+        break;
+    case File_Message_Removed:
+        msg = "Message removed";
+        break;
+    case File_Enum_Added:
+        msg = "Enum added";
+        break;
+    case File_Enum_Removed:
+        msg = "Enum removed";
+        break;
+    case Name_Missing:
+        msg = "Name missing";
+        break;
+    default:
+        msg = "?";
+        return msg;
+    }
+
+    msg += ": " + a + " -> " + b;
+
+    return msg;
+}
+
+string Comparison::Section::message() const
+{
+    ostringstream msg;
+
+    switch(type)
+    {
+    case Root_Section:
+        msg << "/";
+        break;
+    case Message_Comparison:
+        msg << "Comparing messages: " << a << " -> " << b;
+        break;
+    case Message_Field_Comparison:
+        msg << "Comparing message fields: " << a << " -> " << b;
+        break;
+    case Enum_Comparison:
+        msg << "Comparing enums: " << a << " -> " << b;
+        break;
+    case Enum_Value_Comparison:
+        msg << "Comparing enum values: " << a << " -> " << b;
+        break;
+    default:
+        msg << "?";
+    }
+
+    return msg.str();
+}
 
 void print_field(const FieldDescriptor * field)
 {
@@ -206,7 +335,7 @@ bool Comparison::compare_default_value(const FieldDescriptor * field1, const Fie
 
 Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
 {
-    Section section("Comparing enums " + enum1->full_name() + " -> " + enum2->full_name());
+    Section section(Enum_Comparison, enum1->full_name(), enum2->full_name());
 
     for (int i = 0; i < enum1->value_count(); ++i)
     {
@@ -215,17 +344,17 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
 
         if (value2)
         {
+            auto & subsection = section.add_subsection(Enum_Value_Comparison, value1->name(), value2->name());
+
             if (value1->number() != value2->number())
             {
-                section.add_item("Changed value ID: "
-                                 + value1->name() + " = " + to_string(value1->number())
-                                 + " -> "
-                                 + value2->name() + " = " + to_string(value2->number()));
+                subsection.add_item(Enum_Value_Id_Changed,
+                                    to_string(value1->number()), to_string(value2->number()));
             }
         }
         else
         {
-            section.add_item("Removed value: " + value1->name());
+            section.add_item(Enum_Value_Removed, value1->name(), "");
         }
     }
 
@@ -235,7 +364,7 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
         auto * value1 = enum1->FindValueByName(value2->name());
         if (!value1)
         {
-            section.add_item("Added value: " + value2->name());
+            section.add_item(Enum_Value_Added, "", value2->name());
         }
     }
 
@@ -251,55 +380,49 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
     cout << endl;
 #endif
 
-    Section section("Comparing fields: " + field1->full_name() + " -> " + field2->full_name());
+    Section section(Message_Field_Comparison, field1->full_name(), field2->full_name());
 
     if (field1->name() != field2->name())
     {
-        section.add_item("Changed name.");
+        section.add_item(Message_Field_Name_Changed, field1->name(), field2->name());
     }
 
     if (field1->number() != field2->number())
     {
-        section.add_item("Changed ID.");
+        section.add_item(Message_Field_Id_Changed, to_string(field1->number()), to_string(field2->number()));
     }
 
     if (field1->label() != field2->label())
     {
-        section.add_item("Changed label.");
+        section.add_item(Message_Field_Label_Changed, "", "");
     }
 
     if (field1->type() != field2->type())
     {
-        section.add_item("Changed type.");
+        section.add_item(Message_Field_Type_Changed, field1->type_name(), field2->type_name());
     }
-
-    if (field1->type() == FieldDescriptor::TYPE_ENUM)
+    else if (field1->type() == FieldDescriptor::TYPE_ENUM)
     {
         auto * enum1 = field1->enum_type();
         auto * enum2 = field2->enum_type();
 
         if (enum1->full_name() != enum2->full_name())
         {
-            section.items.push_back("Changed field type name: "
-                                    + enum1->full_name() + " -> "
-                                    + enum2->full_name());
+            section.add_item(Message_Field_Type_Changed, enum1->full_name(), enum2->full_name());
         }
 
         {
             section.subsections.push_back(compare(enum1, enum2));
         }
     }
-
-    if (field1->type() == FieldDescriptor::TYPE_MESSAGE)
+    else if (field1->type() == FieldDescriptor::TYPE_MESSAGE)
     {
         auto * msg1 = field1->message_type();
         auto * msg2 = field2->message_type();
 
         if (msg1->full_name() != msg2->full_name())
         {
-            section.items.push_back("Changed field type name: "
-                                    + msg1->full_name() + " -> "
-                                    + msg2->full_name());
+            section.add_item(Message_Field_Type_Changed, msg1->full_name(), msg2->full_name());
         }
 
         {
@@ -311,7 +434,7 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
     {
         if (!compare_default_value(field1, field2))
         {
-            section.add_item("Changed default value.");
+            section.add_item(Message_Field_Default_Value_Changed, "", "");
         }
     }
 
@@ -320,8 +443,7 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
 
 Comparison::Section Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
 {
-    Section section("Comparing messages: "
-                    + desc1->full_name() + " -> " + desc2->full_name());
+    Section section(Message_Comparison, desc1->full_name(), desc2->full_name());
 
     for (int i = 0; i < desc1->field_count(); ++i)
     {
@@ -334,7 +456,7 @@ Comparison::Section Comparison::compare(const Descriptor * desc1, const Descript
         }
         else
         {
-            section.add_item("Removed field: " + field1->name());
+            section.add_item(Message_Field_Removed, field1->name(), "");
         }
     }
 
@@ -344,7 +466,7 @@ Comparison::Section Comparison::compare(const Descriptor * desc1, const Descript
         auto * field1 = desc1->FindFieldByName(field2->name());
         if (!field1)
         {
-            section.add_item("Added field: " + field2->name());
+            section.add_item(Message_Field_Added, "", field2->name());
         }
     }
 
@@ -388,20 +510,17 @@ void Comparison::compare(Source & source1, Source & source2)
     auto * file1 = source1.file_descriptor();
     auto * file2 = source2.file_descriptor();
 
-    Section & section = root.add_subsection("Comparing all enums and messages in files: "
-                                            + file1->name() + " -> " + file2->name());
-
     for (int i = 0; i < file1->message_type_count(); ++i)
     {
         auto * msg1 = file1->message_type(i);
         auto * msg2 = file2->FindMessageTypeByName(msg1->name());
         if (msg2)
         {
-            section.subsections.push_back(compare(msg1, msg2));
+            root.subsections.push_back(compare(msg1, msg2));
         }
         else
         {
-            section.add_item("Removed message: " + msg1->full_name());
+            root.add_item(File_Message_Removed, msg1->full_name(), "");
         }
     }
 
@@ -411,7 +530,7 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * msg1 = file1->FindMessageTypeByName(msg2->name());
         if (!msg1)
         {
-            section.add_item("Added message: " + msg2->full_name());
+            root.add_item(File_Message_Added, " ", msg2->full_name());
         }
     }
 
@@ -421,11 +540,11 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * enum2 = file2->FindEnumTypeByName(enum1->name());
         if (enum2)
         {
-            section.subsections.push_back(compare(enum1, enum2));
+            root.subsections.push_back(compare(enum1, enum2));
         }
         else
         {
-            section.add_item("Removed enum: " + enum1->full_name());
+            root.add_item(File_Enum_Removed, enum1->full_name(), "");
         }
     }
 
@@ -435,7 +554,7 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * enum1 = file1->FindEnumTypeByName(enum2->name());
         if (!enum1)
         {
-            section.add_item("Added enum: " + enum2->full_name());
+            root.add_item(File_Enum_Added, "", enum2->full_name());
         }
     }
 }
@@ -448,22 +567,17 @@ void Comparison::compare(Source & source1, Source & source2, const string & mess
     auto enum1 = source1.pool()->FindEnumTypeByName(message_or_enum_name);
     auto enum2 = source2.pool()->FindEnumTypeByName(message_or_enum_name);
 
-    Section & section =
-            root.add_subsection("Comparing type " + message_or_enum_name + " in files: "
-                                + source1.file_descriptor()->name() + " -> "
-                                + source2.file_descriptor()->name());
-
     if (desc1 and desc2)
     {
-        section.subsections.push_back(compare(desc1, desc2));
+        root.subsections.push_back(compare(desc1, desc2));
     }
     else if (enum1 and enum2)
     {
-        section.subsections.push_back(compare(enum1, enum2));
+        root.subsections.push_back(compare(enum1, enum2));
     }
     else
     {
-        section.add_item("Could not find message or enum named '" + message_or_enum_name + "' in both sources.");
+        root.add_item(Name_Missing, message_or_enum_name, message_or_enum_name);
     }
 }
 
