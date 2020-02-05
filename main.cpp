@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <memory>
+#include <list>
 
 using namespace std;
 
@@ -63,12 +64,74 @@ private:
 class Comparison
 {
 public:
+    struct Item
+    {
+        Item(const string & what): what(what) {}
+        string what;
+    };
+
+    struct Section
+    {
+        Section(const string & what) : what(what) {}
+
+        Section & add_subsection(const string & what)
+        {
+            subsections.emplace_back(what);
+            return subsections.back();
+        }
+
+        void add_item(const string & what)
+        {
+            items.emplace_back(what);
+        }
+
+        bool is_empty() const { return subsections.empty() and items.empty(); }
+
+        void trim()
+        {
+            auto s = subsections.begin();
+            while (s != subsections.end())
+            {
+                s->trim();
+                if (s->is_empty())
+                    s = subsections.erase(s);
+                else
+                    ++s;
+            }
+        }
+
+        void print(int level = 0)
+        {
+            cout << string(level*2, ' ') << what << endl;
+
+            ++level;
+
+            string subprefix(level*2, ' ');
+
+            for (auto & item : items)
+            {
+                cout << subprefix << item.what << endl;
+            }
+
+            for (auto & subsection : subsections)
+            {
+                subsection.print(level);
+            }
+        }
+
+        string what;
+        list<Section> subsections;
+        list<Item> items;
+    };
+
     void compare(Source & source1, Source & source2);
     void compare(Source & source1, Source & source2, const string & message_name);
-    void compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2);
-    void compare(const Descriptor * desc1, const Descriptor * desc2);
-    void compare(const FieldDescriptor * field1, const FieldDescriptor * field2);
+    Section compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2);
+    Section compare(const Descriptor * desc1, const Descriptor * desc2);
+    Section compare(const FieldDescriptor * field1, const FieldDescriptor * field2);
     bool compare_default_value(const FieldDescriptor * field1, const FieldDescriptor * field2);
+
+    Section root { "/" };
 };
 
 void print_field(const FieldDescriptor * field)
@@ -141,8 +204,15 @@ bool Comparison::compare_default_value(const FieldDescriptor * field1, const Fie
     }
 }
 
-void Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
+Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
 {
+    Section section("Comparing enums " + enum1->full_name() + " -> " + enum2->full_name());
+
+    if (enum1->name() != enum2->name())
+    {
+        section.add_item("Changed name.");
+    }
+
     for (int i = 0; i < enum1->value_count(); ++i)
     {
         auto * value1 = enum1->value(i);
@@ -152,13 +222,15 @@ void Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * en
         {
             if (value1->number() != value2->number())
             {
-                cout << "Enum value has different ID: "
-                     << enum1->full_name() << " -> " << enum2->full_name() << endl;
+                section.add_item("Changed value ID: "
+                                 + value1->full_name() + " = " + to_string(value1->number())
+                                 + " -> "
+                                 + value2->full_name() + " = " + to_string(value2->number()));
             }
         }
         else
         {
-            cout << "Enum value removed: " << value1->full_name() << endl;
+            section.add_item("Removed enum value: " + value1->full_name());
         }
     }
 
@@ -168,12 +240,14 @@ void Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * en
         auto * value1 = enum1->FindValueByName(value2->name());
         if (!value1)
         {
-            cout << "Enum value added: " << value2->full_name() << endl;
+            section.add_item("Added enum value: " + value2->full_name());
         }
     }
+
+    return section;
 }
 
-void Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
+Comparison::Section Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
 {
 #if 0
     print_field(field1);
@@ -181,35 +255,36 @@ void Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor *
     print_field(field2);
     cout << endl;
 #endif
-    string what = field1->full_name() + " -> " + field2->full_name();
+
+    Section section("Comparing fields: " + field1->full_name() + " -> " + field2->full_name());
+
+    if (field1->name() != field2->name())
+    {
+        section.add_item("Changed field name.");
+    }
 
     if (field1->number() != field2->number())
     {
-        cout << "Changed ID: " << what << endl;
+        section.add_item("Changed ID.");
     }
 
     if (field1->label() != field2->label())
     {
-        cout << "Changed label: " << what << endl;
+        section.add_item("Changed label.");
     }
 
     if (field1->type() != field2->type())
     {
-        cout << "Changed type: " << what << endl;
+        section.add_item("Changed type.");
     }
 
     if (field1->type() == FieldDescriptor::TYPE_ENUM)
     {
         auto * enum1 = field1->enum_type();
         auto * enum2 = field2->enum_type();
-        if (enum1->full_name() != enum2->full_name())
-        {
-            cout << "Changed type name: " << what << endl;
-        }
 
-        //if (!state.done_comparisons.count({ enum1->full_name(), enum2->full_name() }))
         {
-            compare(enum1, enum2);
+            section.subsections.push_back(compare(enum1, enum2));
         }
     }
 
@@ -218,14 +293,8 @@ void Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor *
         auto * msg1 = field1->message_type();
         auto * msg2 = field2->message_type();
 
-        if (msg1->full_name() != msg2->full_name())
         {
-            cout << "Changed type name: " << what << endl;
-        }
-
-        //if (!state.done_comparisons.count({ enum1->full_name(), enum2->full_name() }))
-        {
-            compare(msg1, msg2);
+            section.subsections.push_back(compare(msg1, msg2));
         }
     }
 
@@ -233,13 +302,18 @@ void Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor *
     {
         if (!compare_default_value(field1, field2))
         {
-            cout << "Changed default value: " << what << endl;
+            section.add_item("Changed default value.");
         }
     }
+
+    return section;
 }
 
-void Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
+Comparison::Section Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
 {
+    Section section("Comparing messages: "
+                    + desc1->full_name() + " -> " + desc2->full_name());
+
     for (int i = 0; i < desc1->field_count(); ++i)
     {
         auto * field1 = desc1->field(i);
@@ -247,11 +321,11 @@ void Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
 
         if (field2)
         {
-            compare(field1, field2);
+            section.subsections.push_back(compare(field1, field2));
         }
         else
         {
-            cout << "Field removed: " << field1->number() << " = " << field1->full_name() << endl;
+            section.add_item("Removed field: " + field1->full_name());
         }
     }
 
@@ -261,9 +335,11 @@ void Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
         auto * field1 = desc1->FindFieldByName(field2->name());
         if (!field1)
         {
-            cout << "Field added: " << field2->number() << " = " << field2->full_name() << endl;
+            section.add_item("Added field: " + field2->full_name());
         }
     }
+
+    return section;
 
 #if 0
     //
@@ -303,20 +379,22 @@ void Comparison::compare(Source & source1, Source & source2)
     auto * file1 = source1.file_descriptor();
     auto * file2 = source2.file_descriptor();
 
+    Section & section = root.add_subsection("Comparing files: "
+                                            + file1->name() + " -> " + file2->name());
+
     for (int i = 0; i < file1->message_type_count(); ++i)
     {
         auto * msg1 = file1->message_type(i);
         auto * msg2 = file2->FindMessageTypeByName(msg1->name());
         if (msg2)
         {
-            compare(msg1, msg2);
+            section.subsections.push_back(compare(msg1, msg2));
         }
         else
         {
-            cout << "Message removed: " << msg1->full_name() << endl;
+            section.add_item("Message removed: " + msg1->full_name());
         }
     }
-
 
     for (int i = 0; i < file2->message_type_count(); ++i)
     {
@@ -324,7 +402,7 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * msg1 = file1->FindMessageTypeByName(msg2->name());
         if (!msg1)
         {
-            cout << "Message added: " << msg2->full_name() << endl;
+            section.add_item("Message added: " + msg2->full_name());
         }
     }
 }
@@ -336,20 +414,25 @@ void Comparison::compare(Source & source1, Source & source2, const string & mess
 
     bool ok = desc1 != nullptr and desc2 != nullptr;
 
+    Section & section =
+            root.add_subsection("Comparing message " + message_name + " in files: "
+                                + source1.file_descriptor()->name() + " -> "
+                                + source2.file_descriptor()->name());
+
     if (!desc1)
     {
-        cout << "Message '" << message_name << "' does not appear in source 1." << endl;
+        section.add_item("Message '" + message_name + "' does not appear in source 1.");
     }
 
     if (!desc2)
     {
-        cout << "Message '" << message_name << "' does not appear in source 2." << endl;
+        section.add_item("Message '" + message_name + "' does not appear in source 2.");
     }
 
     if (!ok)
         return;
 
-    compare(desc1, desc2);
+    section.subsections.push_back(compare(desc1, desc2));
 }
 
 int main(int argc, char * argv[])
@@ -375,7 +458,11 @@ int main(int argc, char * argv[])
     catch(std::exception & e)
     {
         cerr << e.what() << endl;
+        return 1;
     }
+
+    comparison.root.trim();
+    comparison.root.print();
 
     return 0;
 }
