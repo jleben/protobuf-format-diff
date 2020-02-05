@@ -193,6 +193,8 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+    comparison.root.trim();
+
     try
     {
         verify(comparison, expected);
