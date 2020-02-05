@@ -373,7 +373,7 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * msg1 = file1->FindMessageTypeByName(msg2->name());
         if (!msg1)
         {
-            root.add_item(File_Message_Added, " ", msg2->full_name());
+            root.add_item(File_Message_Added, "", msg2->full_name());
         }
     }
 

@@ -1,0 +1,9 @@
+{
+  "type": "/",
+  "items": [
+    {
+      "type": "file_message_added",
+      "b": "Test.M"
+    }
+  ]
+}
