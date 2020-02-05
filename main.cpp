@@ -110,7 +110,7 @@ public:
 
             for (auto & item : items)
             {
-                cout << subprefix << item.what << endl;
+                cout << subprefix << "* " << item.what << endl;
             }
 
             for (auto & subsection : subsections)
@@ -208,11 +208,6 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
 {
     Section section("Comparing enums " + enum1->full_name() + " -> " + enum2->full_name());
 
-    if (enum1->name() != enum2->name())
-    {
-        section.add_item("Changed name.");
-    }
-
     for (int i = 0; i < enum1->value_count(); ++i)
     {
         auto * value1 = enum1->value(i);
@@ -223,14 +218,14 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
             if (value1->number() != value2->number())
             {
                 section.add_item("Changed value ID: "
-                                 + value1->full_name() + " = " + to_string(value1->number())
+                                 + value1->name() + " = " + to_string(value1->number())
                                  + " -> "
-                                 + value2->full_name() + " = " + to_string(value2->number()));
+                                 + value2->name() + " = " + to_string(value2->number()));
             }
         }
         else
         {
-            section.add_item("Removed enum value: " + value1->full_name());
+            section.add_item("Removed enum value: " + value1->name());
         }
     }
 
@@ -240,7 +235,7 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
         auto * value1 = enum1->FindValueByName(value2->name());
         if (!value1)
         {
-            section.add_item("Added enum value: " + value2->full_name());
+            section.add_item("Added enum value: " + value2->name());
         }
     }
 
@@ -260,7 +255,7 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
 
     if (field1->name() != field2->name())
     {
-        section.add_item("Changed field name.");
+        section.add_item("Changed name.");
     }
 
     if (field1->number() != field2->number())
@@ -283,6 +278,13 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
         auto * enum1 = field1->enum_type();
         auto * enum2 = field2->enum_type();
 
+        if (enum1->full_name() != enum2->full_name())
+        {
+            section.items.push_back("Changed field type name: "
+                                    + enum1->full_name() + " -> "
+                                    + enum2->full_name());
+        }
+
         {
             section.subsections.push_back(compare(enum1, enum2));
         }
@@ -292,6 +294,13 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
     {
         auto * msg1 = field1->message_type();
         auto * msg2 = field2->message_type();
+
+        if (msg1->full_name() != msg2->full_name())
+        {
+            section.items.push_back("Changed field type name: "
+                                    + msg1->full_name() + " -> "
+                                    + msg2->full_name());
+        }
 
         {
             section.subsections.push_back(compare(msg1, msg2));
@@ -325,7 +334,7 @@ Comparison::Section Comparison::compare(const Descriptor * desc1, const Descript
         }
         else
         {
-            section.add_item("Removed field: " + field1->full_name());
+            section.add_item("Removed field: " + field1->name());
         }
     }
 
@@ -335,7 +344,7 @@ Comparison::Section Comparison::compare(const Descriptor * desc1, const Descript
         auto * field1 = desc1->FindFieldByName(field2->name());
         if (!field1)
         {
-            section.add_item("Added field: " + field2->full_name());
+            section.add_item("Added field: " + field2->name());
         }
     }
 
@@ -392,7 +401,7 @@ void Comparison::compare(Source & source1, Source & source2)
         }
         else
         {
-            section.add_item("Message removed: " + msg1->full_name());
+            section.add_item("Removed message: " + msg1->full_name());
         }
     }
 
@@ -402,7 +411,7 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * msg1 = file1->FindMessageTypeByName(msg2->name());
         if (!msg1)
         {
-            section.add_item("Message added: " + msg2->full_name());
+            section.add_item("Added message: " + msg2->full_name());
         }
     }
 }
@@ -439,7 +448,8 @@ int main(int argc, char * argv[])
 {
     if (argc < 6)
     {
-        cerr << "Missing arguments: file1 root-dir1 file2 root-dir2 message" << endl;
+        cerr << "Expected arguments: root-dir1 file1 root-dir2 file2 message" << endl;
+        cerr << "Use '.' for message to compare all messages in given files." << endl;
         return 1;
     }
 
@@ -447,8 +457,8 @@ int main(int argc, char * argv[])
 
     try
     {
-        Source source1(argv[1], argv[2]);
-        Source source2(argv[3], argv[4]);
+        Source source1(argv[2], argv[1]);
+        Source source2(argv[4], argv[3]);
         string message_name = argv[5];
         if (message_name == ".")
             comparison.compare(source1, source2);
