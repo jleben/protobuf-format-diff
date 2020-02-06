@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package Test;
+
+message M {
+  optional float f1 = 1;
+  optional E f2 = 2;
+}
+
+enum E {
+  V1 = 1;
+}

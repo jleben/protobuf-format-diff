@@ -1,0 +1,30 @@
+{
+  "type": "/",
+  "sections": [{
+    "type": "message_comparison",
+    "a": "Test.M",
+    "b": "Test.M",
+    "sections": [{
+      "type": "message_field_comparison",
+      "a": "Test.M.f2",
+      "b": "Test.M.f2",
+      "sections": [{
+        "type": "enum_comparison",
+        "a": "Test.E",
+        "b": "Test.E",
+        "items": [
+          { "type": "enum_value_removed", "a": "V1", "b": ""},
+          { "type": "enum_value_added",   "a": "", "b": "V2"}
+        ]
+      }]
+    }]
+  },{
+    "type": "enum_comparison",
+    "a": "Test.E",
+    "b": "Test.E",
+    "items": [
+      { "type": "enum_value_removed", "a": "V1", "b": ""},
+      { "type": "enum_value_added",   "a": "", "b": "V2"}
+    ]
+  }]
+}
