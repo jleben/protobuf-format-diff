@@ -136,6 +136,11 @@ void Comparison::Section::print(int level)
 
     string subprefix(level*2, ' ');
 
+    for (auto & note : notes)
+    {
+        cout << subprefix << note << endl;
+    }
+
     for (auto & item : items)
     {
         cout << subprefix << "* " << item.message() << endl;
@@ -255,6 +260,8 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
         auto * enum2 = field2->enum_type();
 
         auto * type_comparison = compare(enum1, enum2);
+        type_comparison->notes.push_back("Required by " + field1->full_name() + " -> " + field2->full_name());
+
         type_comparison->trim();
         if (!type_comparison->is_empty())
         {
@@ -267,6 +274,8 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
         auto * msg2 = field2->message_type();
 
         auto * type_comparison = compare(msg1, msg2);
+        type_comparison->notes.push_back("Required by " + field1->full_name() + " -> " + field2->full_name());
+
         type_comparison->trim();
         if (!type_comparison->is_empty())
         {

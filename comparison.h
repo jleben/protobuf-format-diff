@@ -118,6 +118,7 @@ public:
         string a;
         string b;
 
+        list<string> notes;
         list<Section> subsections;
         list<Item> items;
 
