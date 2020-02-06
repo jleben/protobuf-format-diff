@@ -1,0 +1,13 @@
+{
+  "type": "/",
+  "sections": [{
+    "type": "message_comparison",
+    "a": "Test.M",
+    "b": "Test.M",
+    "items": [{
+      "type": "message_field_added",
+      "a": "",
+      "b": "f"
+    }]
+  }]
+}

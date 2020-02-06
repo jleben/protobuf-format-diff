@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+package Test;
+
+message M {
+  optional float f1 = 1;
+  required float f2 = 2;
+}
