@@ -6,8 +6,8 @@
     "b": "Test.M",
     "sections": [{
       "type": "message_field_comparison",
-      "a": "Test.M.f2",
-      "b": "Test.M.f2",
+      "a": "f2",
+      "b": "f2",
       "items": [{
         "type": "message_field_type_changed",
         "a": "Test.E",

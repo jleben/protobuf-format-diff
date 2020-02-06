@@ -78,7 +78,7 @@ string Comparison::Section::message() const
         msg << "Comparing messages: " << a << " -> " << b;
         break;
     case Message_Field_Comparison:
-        msg << "Comparing message fields: " << a << " -> " << b;
+        msg << "Comparing fields: " << a << " -> " << b;
         break;
     case Enum_Comparison:
         msg << "Comparing enums: " << a << " -> " << b;
@@ -228,7 +228,7 @@ Comparison::Section * Comparison::compare(const EnumDescriptor * enum1, const En
 
 Comparison::Section Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
 {
-    Section section(Message_Field_Comparison, field1->full_name(), field2->full_name());
+    Section section(Message_Field_Comparison, field1->name(), field2->name());
 
     if (field1->name() != field2->name())
     {
