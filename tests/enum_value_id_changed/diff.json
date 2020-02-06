@@ -1,0 +1,18 @@
+{
+  "type": "/",
+  "sections": [{
+    "type": "enum_comparison",
+    "a": "Test.E",
+    "b": "Test.E",
+    "sections": [{
+      "type": "enum_value_comparison",
+      "a": "V1",
+      "b": "V1",
+      "items": [{
+        "type": "enum_value_id_changed",
+        "a": "1",
+        "b": "3"
+      }]
+    }]
+  }]
+}
