@@ -8,14 +8,10 @@
       "type": "message_field_comparison",
       "a": "Test.M.f2",
       "b": "Test.M.f2",
-      "sections": [{
-        "type": "enum_comparison",
+      "items": [{
+        "type": "message_field_type_changed",
         "a": "Test.E",
-        "b": "Test.E",
-        "items": [
-          { "type": "enum_value_removed", "a": "V1", "b": ""},
-          { "type": "enum_value_added",   "a": "", "b": "V2"}
-        ]
+        "b": "Test.E"
       }]
     }]
   },{

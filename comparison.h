@@ -5,10 +5,12 @@
 #include <sstream>
 #include <memory>
 #include <list>
+#include <unordered_map>
 
 using std::string;
 using std::list;
 using std::shared_ptr;
+using std::unordered_map;
 
 using google::protobuf::Descriptor;
 using google::protobuf::FieldDescriptor;
@@ -151,11 +153,13 @@ public:
     };
 
     void compare(Source & source1, Source & source2);
-    void compare(Source & source1, Source & source2, const string & message_name);
-    Section compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2);
-    Section compare(const Descriptor * desc1, const Descriptor * desc2);
+    void compare(Source & source1, const string & name1, Source & source2, const string &name2);
+    Section * compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2);
+    Section * compare(const Descriptor * desc1, const Descriptor * desc2);
     Section compare(const FieldDescriptor * field1, const FieldDescriptor * field2);
     bool compare_default_value(const FieldDescriptor * field1, const FieldDescriptor * field2);
 
     Section root { Root_Section, "", "" };
+
+    unordered_map<string, Section*> compared;
 };

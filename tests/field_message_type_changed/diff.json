@@ -8,20 +8,10 @@
       "type": "message_field_comparison",
       "a": "Test.M1.f2",
       "b": "Test.M1.f2",
-      "sections": [{
-        "type": "message_comparison",
+      "items": [{
+        "type": "message_field_type_changed",
         "a": "Test.M2",
-        "b": "Test.M2",
-        "sections": [{
-          "type": "message_field_comparison",
-          "a": "Test.M2.b",
-          "b": "Test.M2.b",
-          "items": [{
-            "type": "message_field_type_changed",
-            "a": "bool",
-            "b": "int32"
-          }]
-        }]
+        "b": "Test.M2"
       }]
     }]
   },{

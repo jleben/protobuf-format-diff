@@ -183,9 +183,14 @@ bool Comparison::compare_default_value(const FieldDescriptor * field1, const Fie
     }
 }
 
-Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
+Comparison::Section * Comparison::compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2)
 {
-    Section section(Enum_Comparison, enum1->full_name(), enum2->full_name());
+    string key = enum1->full_name() + ":" + enum2->full_name();
+    if (compared.count(key))
+        return compared.at(key);
+
+    auto & section = root.add_subsection(Enum_Comparison, enum1->full_name(), enum2->full_name());
+    compared.emplace(key, &section);
 
     for (int i = 0; i < enum1->value_count(); ++i)
     {
@@ -218,7 +223,7 @@ Comparison::Section Comparison::compare(const EnumDescriptor * enum1, const Enum
         }
     }
 
-    return section;
+    return &section;
 }
 
 Comparison::Section Comparison::compare(const FieldDescriptor * field1, const FieldDescriptor * field2)
@@ -249,13 +254,11 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
         auto * enum1 = field1->enum_type();
         auto * enum2 = field2->enum_type();
 
-        if (enum1->full_name() != enum2->full_name())
+        auto * type_comparison = compare(enum1, enum2);
+        type_comparison->trim();
+        if (!type_comparison->is_empty())
         {
             section.add_item(Message_Field_Type_Changed, enum1->full_name(), enum2->full_name());
-        }
-
-        {
-            section.subsections.push_back(compare(enum1, enum2));
         }
     }
     else if (field1->type() == FieldDescriptor::TYPE_MESSAGE)
@@ -263,13 +266,11 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
         auto * msg1 = field1->message_type();
         auto * msg2 = field2->message_type();
 
-        if (msg1->full_name() != msg2->full_name())
+        auto * type_comparison = compare(msg1, msg2);
+        type_comparison->trim();
+        if (!type_comparison->is_empty())
         {
             section.add_item(Message_Field_Type_Changed, msg1->full_name(), msg2->full_name());
-        }
-
-        {
-            section.subsections.push_back(compare(msg1, msg2));
         }
     }
 
@@ -284,9 +285,15 @@ Comparison::Section Comparison::compare(const FieldDescriptor * field1, const Fi
     return section;
 }
 
-Comparison::Section Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
+Comparison::Section * Comparison::compare(const Descriptor * desc1, const Descriptor * desc2)
 {
-    Section section(Message_Comparison, desc1->full_name(), desc2->full_name());
+    string key = desc1->full_name() + ":" + desc2->full_name();
+    if (compared.count(key))
+        return compared.at(key);
+
+    auto & section = root.add_subsection(Message_Comparison, desc1->full_name(), desc2->full_name());
+    compared.emplace(key, &section);
+
 
     for (int i = 0; i < desc1->field_count(); ++i)
     {
@@ -313,7 +320,7 @@ Comparison::Section Comparison::compare(const Descriptor * desc1, const Descript
         }
     }
 
-    return section;
+    return &section;
 
 #if 0
     //
@@ -359,7 +366,7 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * msg2 = file2->FindMessageTypeByName(msg1->name());
         if (msg2)
         {
-            root.subsections.push_back(compare(msg1, msg2));
+            compare(msg1, msg2);
         }
         else
         {
@@ -383,7 +390,7 @@ void Comparison::compare(Source & source1, Source & source2)
         auto * enum2 = file2->FindEnumTypeByName(enum1->name());
         if (enum2)
         {
-            root.subsections.push_back(compare(enum1, enum2));
+            compare(enum1, enum2);
         }
         else
         {
@@ -402,25 +409,26 @@ void Comparison::compare(Source & source1, Source & source2)
     }
 }
 
-void Comparison::compare(Source & source1, Source & source2, const string & message_or_enum_name)
-{
-    auto desc1 = source1.pool()->FindMessageTypeByName(message_or_enum_name);
-    auto desc2 = source2.pool()->FindMessageTypeByName(message_or_enum_name);
 
-    auto enum1 = source1.pool()->FindEnumTypeByName(message_or_enum_name);
-    auto enum2 = source2.pool()->FindEnumTypeByName(message_or_enum_name);
+void Comparison::compare(Source & source1, const string & name1, Source & source2, const string &name2)
+{
+    auto desc1 = source1.pool()->FindMessageTypeByName(name1);
+    auto desc2 = source2.pool()->FindMessageTypeByName(name2);
+
+    auto enum1 = source1.pool()->FindEnumTypeByName(name1);
+    auto enum2 = source2.pool()->FindEnumTypeByName(name2);
 
     if (desc1 and desc2)
     {
-        root.subsections.push_back(compare(desc1, desc2));
+        compare(desc1, desc2);
     }
     else if (enum1 and enum2)
     {
-        root.subsections.push_back(compare(enum1, enum2));
+        compare(enum1, enum2);
     }
     else
     {
-        root.add_item(Name_Missing, message_or_enum_name, message_or_enum_name);
+        root.add_item(Name_Missing, name1, name2);
     }
 }
 

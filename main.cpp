@@ -23,7 +23,7 @@ int main(int argc, char * argv[])
         if (message_name == ".")
             comparison.compare(source1, source2);
         else
-            comparison.compare(source1, source2, message_name);
+            comparison.compare(source1, message_name, source2, message_name);
     }
     catch(std::exception & e)
     {
