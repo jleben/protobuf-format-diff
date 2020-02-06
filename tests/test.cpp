@@ -83,7 +83,7 @@ void verify(const Comparison::Item & item, json & expected)
     confirm(item.a == expected_a, "Item side A: '" + item.a + "' = '" + expected_a + "'");
 
     string expected_b = expected["b"];
-    confirm(item.b == expected_b, "Item side B: '" + item.b + "' = " + expected_b + "'");
+    confirm(item.b == expected_b, "Item side B: '" + item.b + "' = '" + expected_b + "'");
 }
 
 void verify(const Comparison::Section & section, json & expected)
