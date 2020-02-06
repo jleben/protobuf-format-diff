@@ -93,17 +93,11 @@ void verify(const Comparison::Section & section, json & expected)
     string expected_type = expected["type"];
     confirm(section_type_string(section.type) == expected_type, "Section type = " + expected_type);
 
-    if (!section.a.empty())
-    {
-        string expected_a = expected["a"];
-        confirm(section.a == expected_a, "Section side A = " + expected_a);
-    }
+    string expected_a = expected.count("a") ? expected["a"] : "";
+    confirm(section.a == expected_a, "Section side A = " + expected_a);
 
-    if (!section.b.empty())
-    {
-        string expected_b = expected["b"];
-        confirm(section.b == expected_b, "Section side B = " + expected_b);
-    }
+    string expected_b = expected.count("b") ? expected["b"] : "";
+    confirm(section.b == expected_b, "Section side B = " + expected_b);
 
     auto & expected_items = expected["items"];
 
