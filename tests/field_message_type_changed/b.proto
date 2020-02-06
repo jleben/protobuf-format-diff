@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package Test;
+
+message M1 {
+  optional float f1 = 1;
+  optional M2 f2 = 2;
+}
+
+message M2 {
+  optional int32 b = 1;
+}

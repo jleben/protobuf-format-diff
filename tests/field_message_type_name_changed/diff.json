@@ -1,0 +1,22 @@
+{
+  "type": "/",
+  "items": [
+    { "type": "file_message_removed", "a": "Test.M2", "b": "" },
+    { "type": "file_message_added", "a": "", "b": "Test.M3" }
+  ],
+  "sections": [{
+    "type": "message_comparison",
+    "a": "Test.M1",
+    "b": "Test.M1",
+    "sections": [{
+      "type": "message_field_comparison",
+      "a": "Test.M1.f2",
+      "b": "Test.M1.f2",
+      "items": [{
+        "type": "message_field_type_changed",
+        "a": "Test.M2",
+        "b": "Test.M3"
+      }]
+    }]
+  }]
+}
