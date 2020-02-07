@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+package Test;
+
+message M {
+  optional bool f2_changed = 2;
+  optional float f3 = 3;
+}

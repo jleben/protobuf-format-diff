@@ -8,12 +8,31 @@ int main(int argc, char * argv[])
 {
     if (argc < 6)
     {
-        cerr << "Expected arguments: root-dir1 file1 root-dir2 file2 message" << endl;
-        cerr << "Use '.' for message to compare all messages in given files." << endl;
+        cerr << "Expected arguments: root-dir1 file1 root-dir2 file2 type [--binary]" << endl;
+        cerr << "Use '.' for <type> to compare all messages and enums in given files." << endl;
         return 1;
     }
 
-    Comparison comparison;
+    Comparison::Options options;
+
+    if (argc > 6)
+    {
+        for (int i = 6; i < argc; ++i)
+        {
+            string arg = argv[i];
+            if (arg == "--binary")
+            {
+                options.binary = true;
+            }
+            else
+            {
+                cerr << "Unknown option: " << arg << endl;
+                return 1;
+            }
+        }
+    }
+
+    Comparison comparison(options);
 
     try
     {

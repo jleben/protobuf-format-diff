@@ -1,0 +1,27 @@
+{
+  "type": "/",
+  "sections": [{
+    "type": "enum_comparison",
+    "a": "Test.E",
+    "b": "Test.E",
+    "items": [{
+      "type": "enum_value_removed",
+      "a": "1",
+      "b": ""
+    },{
+      "type": "enum_value_added",
+      "a": "",
+      "b": "3"
+    }],
+    "sections": [{
+      "type": "enum_value_comparison",
+      "a": "v2",
+      "b": "v2_changed",
+      "items": [{
+        "type": "enum_value_name_changed",
+        "a": "v2",
+        "b": "v2_changed"
+      }]
+    }]
+  }]
+}

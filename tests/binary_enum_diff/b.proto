@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+package Test;
+
+enum E {
+  v2_changed = 2;
+  v3 = 3;
+}

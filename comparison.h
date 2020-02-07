@@ -73,6 +73,7 @@ class Comparison
 public:
     enum ItemType
     {
+        Enum_Value_Name_Changed,
         Enum_Value_Id_Changed,
         Enum_Value_Added,
         Enum_Value_Removed,
@@ -153,6 +154,14 @@ public:
         void print(int level = 0);
     };
 
+    struct Options
+    {
+        Options() {}
+        bool binary = false;
+    };
+
+    Comparison(const Options & options = Options{});
+
     void compare(Source & source1, Source & source2);
     void compare(Source & source1, const string & name1, Source & source2, const string &name2);
     Section * compare(const EnumDescriptor * enum1, const EnumDescriptor * enum2);
@@ -163,4 +172,7 @@ public:
     Section root { Root_Section, "", "" };
 
     unordered_map<string, Section*> compared;
+
+private:
+    Options options;
 };

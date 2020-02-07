@@ -1,6 +1,7 @@
 #include "comparison.h"
 
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -10,6 +11,9 @@ string Comparison::Item::message() const
 
     switch (type)
     {
+    case Enum_Value_Name_Changed:
+        msg = "Value name changed";
+        break;
     case Enum_Value_Id_Changed:
         msg = "Value ID changed";
         break;
@@ -152,6 +156,10 @@ void Comparison::Section::print(int level)
     }
 }
 
+Comparison::Comparison(const Options & options):
+    options(options)
+{}
+
 bool Comparison::compare_default_value(const FieldDescriptor * field1, const FieldDescriptor * field2)
 {
     if (field1->has_default_value() != field2->has_default_value())
@@ -200,7 +208,9 @@ Comparison::Section * Comparison::compare(const EnumDescriptor * enum1, const En
     for (int i = 0; i < enum1->value_count(); ++i)
     {
         auto * value1 = enum1->value(i);
-        auto * value2 = enum2->FindValueByName(value1->name());
+        auto * value2 = options.binary ?
+                    enum2->FindValueByNumber(value1->number()) :
+                    enum2->FindValueByName(value1->name());
 
         if (value2)
         {
@@ -211,20 +221,30 @@ Comparison::Section * Comparison::compare(const EnumDescriptor * enum1, const En
                 subsection.add_item(Enum_Value_Id_Changed,
                                     to_string(value1->number()), to_string(value2->number()));
             }
+            if (value1->name() != value2->name())
+            {
+                subsection.add_item(Enum_Value_Name_Changed,
+                                    value1->name(), value2->name());
+            }
         }
         else
         {
-            section.add_item(Enum_Value_Removed, value1->name(), "");
+            string value1_id = options.binary ? to_string(value1->number()) : value1->name();
+            section.add_item(Enum_Value_Removed, value1_id, "");
         }
     }
 
     for (int i = 0; i < enum2->value_count(); ++i)
     {
         auto * value2 = enum2->value(i);
-        auto * value1 = enum1->FindValueByName(value2->name());
+        auto * value1 = options.binary ?
+                    enum1->FindValueByNumber(value2->number()) :
+                    enum1->FindValueByName(value2->name());
+
         if (!value1)
         {
-            section.add_item(Enum_Value_Added, "", value2->name());
+            string value2_id = options.binary ? to_string(value2->number()) : value2->name();
+            section.add_item(Enum_Value_Added, "", value2_id);
         }
     }
 
@@ -307,7 +327,9 @@ Comparison::Section * Comparison::compare(const Descriptor * desc1, const Descri
     for (int i = 0; i < desc1->field_count(); ++i)
     {
         auto * field1 = desc1->field(i);
-        auto * field2 = desc2->FindFieldByName(field1->name());
+        auto * field2 = options.binary ?
+                    desc2->FindFieldByNumber(field1->number()) :
+                    desc2->FindFieldByName(field1->name());
 
         if (field2)
         {
@@ -315,53 +337,26 @@ Comparison::Section * Comparison::compare(const Descriptor * desc1, const Descri
         }
         else
         {
-            section.add_item(Message_Field_Removed, field1->name(), "");
+            string field1_id = options.binary ? to_string(field1->number()) : field1->name();
+            section.add_item(Message_Field_Removed, field1_id, "");
         }
     }
 
     for (int i = 0; i < desc2->field_count(); ++i)
     {
         auto * field2 = desc2->field(i);
-        auto * field1 = desc1->FindFieldByName(field2->name());
+        auto * field1 =  options.binary ?
+                    desc1->FindFieldByNumber(field2->number()) :
+                    desc1->FindFieldByName(field2->name());
+
         if (!field1)
         {
-            section.add_item(Message_Field_Added, "", field2->name());
+            string field2_id = options.binary ? to_string(field2->number()) : field2->name();
+            section.add_item(Message_Field_Added, "", field2_id);
         }
     }
 
     return &section;
-
-#if 0
-    //
-    std::set<int> field_number_set;
-
-    for (int i = 0; i < desc1.field_count(); ++i)
-    {
-        field_number_set.insert(desc1.field(i)->number());
-    }
-
-    for (int i = 0; i < desc2.field_count(); ++i)
-    {
-        field_number_set.insert(desc2.field(i)->number());
-    }
-
-    for (int field_number : field_number_set)
-    {
-        auto field1 = desc1->FindFieldByNumber(field_number);
-        auto field2 = desc2->FindFieldByNumber(field_number);
-        if (!field1)
-        {
-            cout << desc2->full_name() << ": added field id: " << field_number << endl;
-            continue;
-        }
-        if (!field2)
-        {
-            cout << desc2->full_name() << ": removed field id: " << field_number << endl;
-            continue;
-        }
-        compare(field1, field2);
-    }
-#endif
 }
 
 void Comparison::compare(Source & source1, Source & source2)

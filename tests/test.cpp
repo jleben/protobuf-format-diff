@@ -38,6 +38,8 @@ string item_type_string(Comparison::ItemType type)
 {
     switch (type)
     {
+    case Comparison::Enum_Value_Name_Changed:
+        return "enum_value_name_changed";
     case Comparison::Enum_Value_Id_Changed:
         return "enum_value_id_changed";
     case Comparison::Enum_Value_Added:
@@ -153,7 +155,26 @@ int main(int argc, char * argv[])
 
     string test_path(argv[1]);
 
-    Comparison comparison;
+    Comparison::Options options;
+
+    if (argc > 2)
+    {
+        for (int i = 2; i < argc; ++i)
+        {
+            string arg = argv[i];
+            if (arg == "--binary")
+            {
+                options.binary = true;
+            }
+            else
+            {
+                cerr << "Unknown option: " << arg << endl;
+                return 1;
+            }
+        }
+    }
+
+    Comparison comparison(options);
 
     try
     {
@@ -166,6 +187,10 @@ int main(int argc, char * argv[])
         cerr << "Error while comparing: " << e.what() << endl;
         return 1;
     }
+
+    comparison.root.trim();
+
+    comparison.root.print();
 
     json expected;
 
@@ -186,8 +211,6 @@ int main(int argc, char * argv[])
         cerr << "Failed to parse diff file: " << e.what() << endl;
         return 1;
     }
-
-    comparison.root.trim();
 
     try
     {

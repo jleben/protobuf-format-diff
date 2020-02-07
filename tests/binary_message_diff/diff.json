@@ -1,0 +1,31 @@
+{
+  "type": "/",
+  "sections": [{
+    "type": "message_comparison",
+    "a": "Test.M",
+    "b": "Test.M",
+    "items": [{
+      "type": "message_field_removed",
+      "a": "1",
+      "b": ""
+    },{
+      "type": "message_field_added",
+      "a": "",
+      "b": "3"
+    }],
+    "sections": [{
+      "type": "message_field_comparison",
+      "a": "f2",
+      "b": "f2_changed",
+      "items": [{
+        "type": "message_field_name_changed",
+        "a": "f2",
+        "b": "f2_changed"
+      },{
+        "type": "message_field_type_changed",
+        "a": "float",
+        "b": "bool"
+      }]
+    }]
+  }]
+}

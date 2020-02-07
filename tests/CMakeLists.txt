@@ -2,11 +2,15 @@
 add_executable(run-tests test.cpp ../comparison.cpp)
 target_link_libraries(run-tests protoc protobuf)
 
-function(add_comparison_test dir_name)
-  message(STATUS "Adding test ${dir_name}")
+function(add_comparison_test_w_options dir_name options)
+  message(STATUS "Adding test ${dir_name} ${options}")
   add_test(NAME "${dir_name}" COMMAND
-          run-tests "${dir_name}"
+          run-tests "${dir_name}" ${options}
           WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+endfunction()
+
+function(add_comparison_test dir_name)
+  add_comparison_test_w_options("${dir_name}" "")
 endfunction()
 
 add_comparison_test(msg_added)
@@ -27,3 +31,5 @@ add_comparison_test(field_message_type_changed)
 add_comparison_test(field_enum_type_name_changed)
 add_comparison_test(field_enum_type_changed)
 add_comparison_test(msg_recursion)
+add_comparison_test_w_options(binary_message_diff --binary)
+add_comparison_test_w_options(binary_enum_diff --binary)
